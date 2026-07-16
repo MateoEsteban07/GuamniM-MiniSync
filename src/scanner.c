@@ -77,7 +77,7 @@ void sincronizar_directorios(const char *origen, const char *destino, int pipe_e
         snprintf(ruta_destino, sizeof(ruta_destino), "%s/%s", destino, entry->d_name);
 
         if (necesita_sincronizacion(ruta_origen, ruta_destino)) {
-           printf("Se detecto '%s'. Enviando por el pipe", entry->d_name);
+           printf("Se detecto '%s'. Enviando por el pipe\n", entry->d_name);
             TareaSincronizacion nueva_tarea;
             strncpy(nueva_tarea.ruta_origen, ruta_origen, sizeof(nueva_tarea.ruta_origen));
             strncpy(nueva_tarea.ruta_destino, ruta_destino, sizeof(nueva_tarea.ruta_destino));
