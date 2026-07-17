@@ -1,5 +1,5 @@
 # MiniSync - Sistema de Sincronización de Archivos
-Mateo Guamaní  
+Mateo Esteban Guamaní  Barahona  
 
 MiniSync es un programa desarrollado en C para sistemas Linux. Funciona como un motor de sincronización unidireccional parecido a un sistema de almacenamiento como Google Drive y otros parecidos, manteniendo una carpeta de respaldo (Destino) como un reflejo de una carpeta de trabajo (Origen).
 
