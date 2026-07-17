@@ -55,6 +55,47 @@ int necesita_sincronizacion(const char *ruta_origen, const char *ruta_destino) {
 
     return 0;
 }
+
+void limpiar_archivos_eliminados(const char *origen, const char *destino) {
+    DIR *dir_destino;
+    struct dirent *entry;
+    char ruta_origen[1024];
+    char ruta_destino[1024];
+
+    dir_destino = opendir(destino);
+    if (dir_destino == NULL) {
+        perror("Error al abrir el directorio destino para limpieza");
+        return;
+    }
+
+    while ((entry = readdir(dir_destino)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue; 
+        }
+
+        snprintf(ruta_origen, sizeof(ruta_origen), "%s/%s", origen, entry->d_name);
+        snprintf(ruta_destino, sizeof(ruta_destino), "%s/%s", destino, entry->d_name);
+        struct stat stat_destino;
+        if (stat(ruta_destino, &stat_destino) == 0) {
+            if (S_ISDIR(stat_destino.st_mode)) { 
+                limpiar_archivos_eliminados(ruta_origen, ruta_destino);
+
+                if (access(ruta_origen, F_OK) != 0) {
+                    printf("Carpeta eliminada: '%s'\n", entry->d_name);
+                    rmdir(ruta_destino); 
+                }
+            } else { 
+                if (access(ruta_origen, F_OK) != 0) {
+                    printf("Archivo eliminado: '%s'\n", entry->d_name);
+                    unlink(ruta_destino);
+                }
+            }
+        }
+       
+    }
+    closedir(dir_destino);
+}
+
 void sincronizar_directorios(const char *origen, const char *destino, int pipe_escritura) {
     DIR *dir;
     struct dirent *entry;
@@ -71,20 +112,29 @@ void sincronizar_directorios(const char *origen, const char *destino, int pipe_e
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue; 
         }
-
-        // Rutas completas para el archivo de orign y destino
         snprintf(ruta_origen, sizeof(ruta_origen), "%s/%s", origen, entry->d_name);
         snprintf(ruta_destino, sizeof(ruta_destino), "%s/%s", destino, entry->d_name);
-
-        if (necesita_sincronizacion(ruta_origen, ruta_destino)) {
-           printf("Se detecto '%s'. Enviando por el pipe\n", entry->d_name);
-            TareaSincronizacion nueva_tarea;
-            strncpy(nueva_tarea.ruta_origen, ruta_origen, sizeof(nueva_tarea.ruta_origen));
-            strncpy(nueva_tarea.ruta_destino, ruta_destino, sizeof(nueva_tarea.ruta_destino));
-            
-            write(pipe_escritura, &nueva_tarea, sizeof(TareaSincronizacion));
-
-        }
+        
+        struct stat stat_origen;
+        if (stat(ruta_origen, &stat_origen) == 0) {
+            if (S_ISDIR(stat_origen.st_mode)){
+                if (access(ruta_destino, F_OK) != 0) {
+                    printf("Creando carpeta: '%s'\n", entry->d_name);
+                    mkdir(ruta_destino, 0755);
+                }
+                sincronizar_directorios(ruta_origen, ruta_destino, pipe_escritura);
+            }else{
+                if (necesita_sincronizacion(ruta_origen, ruta_destino)) {
+                    printf("Archivo sincronizado: '%s'\n", entry->d_name);
+                    TareaSincronizacion nueva_tarea;
+                    strncpy(nueva_tarea.ruta_origen, ruta_origen, sizeof(nueva_tarea.ruta_origen));
+                    strncpy(nueva_tarea.ruta_destino, ruta_destino, sizeof(nueva_tarea.ruta_destino));
+                    write(pipe_escritura, &nueva_tarea, sizeof(TareaSincronizacion));
+                }
+            }
     }
     closedir(dir);
+
+    limpiar_archivos_eliminados(origen, destino);
+    }
 }

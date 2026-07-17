@@ -8,5 +8,6 @@ int necesita_sincronizacion(const char *ruta_origen, const char *ruta_destino);
 
 
 int copiar_archivo(const char *ruta_origen, const char *ruta_destino);
+void limpiar_archivos_eliminados(const char *origen, const char *destino);
 
 #endif
